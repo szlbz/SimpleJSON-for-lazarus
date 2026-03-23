@@ -18,12 +18,14 @@ begin
   Json.I['age'] := 25;
   Json.B['active'] := True;
   Json.F['salary'] := 8500.50;
+  Json.L['id'] := 9876543210;
   
   Writeln('JSON: ' + Json.Format);
   Writeln('姓名: ' + Json.S['name']);
   Writeln('年龄: ' + IntToStr(Json.I['age']));
   Writeln('状态: ' + BoolToStr(Json.B['active'], True));
   Writeln('薪资: ' + FloatToStr(Json.F['salary']));
+  Writeln('ID: ' + IntToStr(Json.L['id']));
   Writeln;
 end;
 
@@ -62,7 +64,7 @@ procedure DemoParseJSON;
 var
   Json: IJson;
 begin
-  Writeln('=== 2. 解析 JSON 字符串 ===');
+  Writeln('=== 3. 解析 JSON 字符串 ===');
   
   Json := TJson.Parse('{"id":1001,"product":"Delphi","price":199.99,"inStock":true}');
   if Assigned(Json) then
@@ -79,7 +81,7 @@ procedure DemoNestedObjects;
 var
   Json: IJson;
 begin
-  Writeln('=== 3. 嵌套对象 ===');
+  Writeln('=== 4. 嵌套对象 ===');
   
   Json := TJson.Create;
   Json.S['name'] := '王五';
@@ -103,7 +105,7 @@ var
   Json: IJson;
   i: Integer;
 begin
-  Writeln('=== 4. 数组操作 ===');
+  Writeln('=== 5. 数组操作 ===');
   
   Json := TJson.Create;
   
@@ -116,6 +118,9 @@ begin
     .Add(10)
     .Add(20)
     .Add(30);
+  
+  Json.A['big_numbers']
+    .Add(Int64(12345678901234));
   
   Writeln('JSON: ' + Json.Format);
   Writeln;
@@ -130,7 +135,7 @@ var
   Json: IJson;
   i: Integer;
 begin
-  Writeln('=== 5. 对象数组 ===');
+  Writeln('=== 6. 对象数组 ===');
   
   Json := TJson.Create;
   
@@ -155,7 +160,7 @@ procedure DemoPathAccess;
 var
   Json: IJson;
 begin
-  Writeln('=== 6. 路径访问 ===');
+  Writeln('=== 7. 路径访问 ===');
   
   Json := TJson.Create;
   Json.S['name'] := '测试';
@@ -178,7 +183,7 @@ procedure DemoModifyAndRemove;
 var
   Json: IJson;
 begin
-  Writeln('=== 7. 修改和删除 ===');
+  Writeln('=== 8. 修改和删除 ===');
   
   Json := TJson.Create;
   Json.S['name'] := '原始名称';
@@ -206,7 +211,7 @@ var
   Keys: TArray<string>;
   Key: string;
 begin
-  Writeln('=== 8. 遍历键 ===');
+  Writeln('=== 9. 遍历键 ===');
   
   Json := TJson.Create;
   Json.S['key1'] := 'value1';
@@ -222,16 +227,81 @@ begin
   Writeln;
 end;
 
+procedure DemoNullAndTryGet;
+var
+  Json: IJson;
+  Value: string;
+  IntValue: Integer;
+begin
+  Writeln('=== 10. Null 值和 TryGet 安全获取 ===');
+  
+  Json := TJson.Create;
+  Json.S['name'] := '测试';
+  Json.SetNull('deleted_at');
+  
+  Writeln('JSON: ' + Json.Format);
+  Writeln;
+  Writeln('检查 Null:');
+  Writeln('  name 是 null: ' + BoolToStr(Json.IsNull('name'), True));
+  Writeln('  deleted_at 是 null: ' + BoolToStr(Json.IsNull('deleted_at'), True));
+  Writeln;
+  Writeln('TryGet 安全获取:');
+  if Json.TryGetS('name', Value) then
+    Writeln('  name = ' + Value)
+  else
+    Writeln('  name 不存在或为 null');
+  
+  if Json.TryGetS('not_exists', Value) then
+    Writeln('  not_exists = ' + Value)
+  else
+    Writeln('  not_exists 不存在');
+    
+  if Json.TryGetI('age', IntValue) then
+    Writeln('  age = ' + IntToStr(IntValue))
+  else
+    Writeln('  age 不存在');
+  Writeln;
+end;
+
+procedure DemoFileOperations;
+var
+  Json: IJson;
+  FileName: string;
+begin
+  Writeln('=== 11. 文件读写 ===');
+  
+  FileName := 'test.json';
+  
+  Json := TJson.Create;
+  Json.S['name'] := '文件测试';
+  Json.I['version'] := 1;
+  Json.D['created'] := Now;
+  
+  Writeln('保存到文件: ' + FileName);
+  Json.SaveToFile(FileName);
+  
+  Writeln('从文件加载:');
+  Json := TJson.LoadFromFile(FileName);
+  if Assigned(Json) then
+  begin
+    Writeln('  name: ' + Json.S['name']);
+    Writeln('  version: ' + IntToStr(Json.I['version']));
+    Writeln('  created: ' + DateTimeToStr(Json.D['created']));
+  end;
+  Writeln;
+end;
+
 procedure DemoComplexStructure;
 var
   Json: IJson;
   i: Integer;
 begin
-  Writeln('=== 9. 复杂结构示例 ===');
+  Writeln('=== 12. 复杂结构示例 ===');
   
   Json := TJson.Create;
   Json.S['company'] := 'ABC科技';
   Json.S['version'] := '1.0.0';
+  Json.L['total_records'] := 9876543210;
   
   Json.O['config'].S['env'] := 'production';
   Json.O['config'].B['debug'] := False;
@@ -246,6 +316,8 @@ begin
   for i := 0 to 2 do
     Json.A['features'].Add('feature' + IntToStr(i + 1));
   
+  Json.SetNull('deleted_at');
+  
   Writeln('完整 JSON:');
   Writeln(Json.Format);
   Writeln;
@@ -253,7 +325,7 @@ end;
 
 procedure DemoAutoMemory;
 begin
-  Writeln('=== 10. 自动内存管理 ===');
+  Writeln('=== 13. 自动内存管理 ===');
   Writeln('使用接口引用计数，无需手动 Free');
   Writeln;
   
@@ -283,6 +355,8 @@ begin
     DemoPathAccess;
     DemoModifyAndRemove;
     DemoIterateKeys;
+    DemoNullAndTryGet;
+    DemoFileOperations;
     DemoComplexStructure;
     DemoAutoMemory;
     
