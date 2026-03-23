@@ -4,7 +4,8 @@
 
 ## 特性
 
-- **类型化属性访问** - 使用 `S/I/F/B` 属性直接读写不同类型值
+- **类型化属性访问** - 使用 `S/I/F/B/D` 属性直接读写不同类型值
+- **日期时间支持** - 内置 ISO 8601 日期格式自动转换
 - **链式调用** - 支持流式 API，代码更简洁
 - **自动内存管理** - 基于接口引用计数，无需手动释放
 - **嵌套对象支持** - 轻松创建和访问多层嵌套结构
@@ -50,6 +51,32 @@ begin
     Writeln(Json.S['name']);  // 输出: Delphi
 end;
 ```
+
+### 日期时间类型
+
+```delphi
+var
+  Json: IJson;
+begin
+  Json := TJson.Create;
+  
+  // 设置日期时间值 (自动转换为 ISO 8601 格式)
+  Json.D['created_at'] := Now;
+  Json.D['birthday'] := EncodeDate(1990, 5, 15);
+  
+  // 读取日期时间值
+  Writeln(DateTimeToStr(Json.D['created_at']));
+  Writeln(DateToStr(Json.D['birthday']));
+  
+  // 解析包含日期的 JSON
+  Json := TJson.Parse('{"event":"会议","start_time":"2024-01-15T09:30:00.000"}');
+  Writeln(DateTimeToStr(Json.D['start_time']));  // 输出: 2024/1/15 9:30:00
+end;
+```
+
+支持的日期格式：
+- ISO 8601: `2024-01-15T09:30:00.000`
+- 简短格式: `2024-01-15`
 
 ### 嵌套对象
 
@@ -134,6 +161,7 @@ end;
 | `I[Key]` | 整数类型读写 |
 | `F[Key]` | 浮点数类型读写 |
 | `B[Key]` | 布尔类型读写 |
+| `D[Key]` | 日期时间类型读写 (ISO 8601 格式) |
 | `O[Key]` | 获取嵌套对象 |
 | `A[Key]` | 获取数组 |
 | `Path[Path]` | 路径方式访问值 |
@@ -153,6 +181,7 @@ end;
 | `I[Index]` | 获取整数元素 |
 | `F[Index]` | 获取浮点数元素 |
 | `B[Index]` | 获取布尔元素 |
+| `D[Index]` | 获取日期时间元素 |
 | `O[Index]` | 获取对象元素 |
 | `Add(Value)` | 添加元素，返回 Self 支持链式调用 |
 | `AddObject` | 添加对象并返回 |

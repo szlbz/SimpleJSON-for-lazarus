@@ -27,6 +27,37 @@ begin
   Writeln;
 end;
 
+procedure DemoDateTime;
+var
+  Json: IJson;
+  Now: TDateTime;
+begin
+  Writeln('=== 2. 日期时间类型 ===');
+  
+  Json := TJson.Create;
+  Now := System.SysUtils.Now;
+  
+  Json.D['created_at'] := Now;
+  Json.D['birthday'] := EncodeDate(1990, 5, 15);
+  
+  Writeln('JSON: ' + Json.Format);
+  Writeln;
+  Writeln('读取日期:');
+  Writeln('  created_at: ' + DateTimeToStr(Json.D['created_at']));
+  Writeln('  birthday: ' + DateToStr(Json.D['birthday']));
+  Writeln;
+  
+  Writeln('解析包含日期的 JSON:');
+  Json := TJson.Parse('{"event":"会议","start_time":"2024-01-15T09:30:00.000","end_date":"2024-12-31"}');
+  if Assigned(Json) then
+  begin
+    Writeln('  event: ' + Json.S['event']);
+    Writeln('  start_time: ' + DateTimeToStr(Json.D['start_time']));
+    Writeln('  end_date: ' + DateToStr(Json.D['end_date']));
+  end;
+  Writeln;
+end;
+
 procedure DemoParseJSON;
 var
   Json: IJson;
@@ -244,6 +275,7 @@ begin
     Writeln;
     
     DemoBasicUsage;
+    DemoDateTime;
     DemoParseJSON;
     DemoNestedObjects;
     DemoArrays;

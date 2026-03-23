@@ -5,6 +5,10 @@ interface
 uses
   System.SysUtils, System.Classes, System.JSON, System.Generics.Collections;
 
+const
+  JSON_DATE_FORMAT = 'yyyy-mm-dd"T"hh:nn:ss.zzz';
+  JSON_DATE_FORMAT_SHORT = 'yyyy-mm-dd';
+
 type
   IJson = interface;
 
@@ -17,11 +21,13 @@ type
     function GetI(Index: Integer): Integer;
     function GetF(Index: Integer): Double;
     function GetB(Index: Integer): Boolean;
+    function GetD(Index: Integer): TDateTime;
     
     function Add(const Value: string): IJsonArray; overload;
     function Add(Value: Integer): IJsonArray; overload;
     function Add(Value: Double): IJsonArray; overload;
     function Add(Value: Boolean): IJsonArray; overload;
+    function Add(Value: TDateTime): IJsonArray; overload;
     function AddObject: IJson;
     function AddArray: IJsonArray;
     procedure Delete(Index: Integer);
@@ -37,6 +43,7 @@ type
     property I[Index: Integer]: Integer read GetI;
     property F[Index: Integer]: Double read GetF;
     property B[Index: Integer]: Boolean read GetB;
+    property D[Index: Integer]: TDateTime read GetD;
   end;
 
   IJson = interface
@@ -49,6 +56,8 @@ type
     procedure SetF(const Key: string; Value: Double);
     function GetB(const Key: string): Boolean;
     procedure SetB(const Key: string; Value: Boolean);
+    function GetD(const Key: string): TDateTime;
+    procedure SetD(const Key: string; Value: TDateTime);
     function GetO(const Key: string): IJson;
     function GetA(const Key: string): IJsonArray;
     function GetPath(const Path: string): string;
@@ -66,6 +75,7 @@ type
     property I[const Key: string]: Integer read GetI write SetI;
     property F[const Key: string]: Double read GetF write SetF;
     property B[const Key: string]: Boolean read GetB write SetB;
+    property D[const Key: string]: TDateTime read GetD write SetD;
     property O[const Key: string]: IJson read GetO;
     property A[const Key: string]: IJsonArray read GetA;
     property Path[const Path: string]: string read GetPath;
@@ -86,6 +96,8 @@ type
     procedure SetF(const Key: string; Value: Double);
     function GetB(const Key: string): Boolean;
     procedure SetB(const Key: string; Value: Boolean);
+    function GetD(const Key: string): TDateTime;
+    procedure SetD(const Key: string; Value: TDateTime);
     function GetO(const Key: string): IJson;
     function GetA(const Key: string): IJsonArray;
     function GetPath(const Path: string): string;
@@ -110,6 +122,7 @@ type
     property I[const Key: string]: Integer read GetI write SetI;
     property F[const Key: string]: Double read GetF write SetF;
     property B[const Key: string]: Boolean read GetB write SetB;
+    property D[const Key: string]: TDateTime read GetD write SetD;
     property O[const Key: string]: IJson read GetO;
     property A[const Key: string]: IJsonArray read GetA;
     property Path[const Path: string]: string read GetPath;
@@ -129,6 +142,7 @@ type
     function GetI(Index: Integer): Integer;
     function GetF(Index: Integer): Double;
     function GetB(Index: Integer): Boolean;
+    function GetD(Index: Integer): TDateTime;
   public
     constructor Create; overload;
     constructor Create(AArray: System.JSON.TJSONArray; AOwned: Boolean = True); overload;
@@ -140,6 +154,7 @@ type
     function Add(Value: Integer): IJsonArray; overload;
     function Add(Value: Double): IJsonArray; overload;
     function Add(Value: Boolean): IJsonArray; overload;
+    function Add(Value: TDateTime): IJsonArray; overload;
     function AddObject: IJson;
     function AddArray: IJsonArray;
     procedure Delete(Index: Integer);
@@ -155,12 +170,46 @@ type
     property I[Index: Integer]: Integer read GetI;
     property F[Index: Integer]: Double read GetF;
     property B[Index: Integer]: Boolean read GetB;
+    property D[Index: Integer]: TDateTime read GetD;
   end;
 
   TJson = TSimpleJson;
   TJsonArray = TSimpleJsonArray;
 
+function TryParseJSONDateTime(const S: string; out Value: TDateTime): Boolean;
+
 implementation
+
+function TryParseJSONDateTime(const S: string; out Value: TDateTime): Boolean;
+var
+  FS: TFormatSettings;
+begin
+  Result := False;
+  if S = '' then
+    Exit;
+    
+  FS := TFormatSettings.Create;
+  FS.DateSeparator := '-';
+  FS.TimeSeparator := ':';
+  FS.ShortDateFormat := 'yyyy-mm-dd';
+  FS.ShortTimeFormat := 'hh:nn:ss';
+  FS.LongTimeFormat := 'hh:nn:ss.zzz';
+  
+  if Pos('T', S) > 0 then
+  begin
+    if Pos('.', S) > 0 then
+      Result := TryStrToDateTime(S, Value, FS)
+    else
+    begin
+      FS.LongTimeFormat := 'hh:nn:ss';
+      Result := TryStrToDateTime(S, Value, FS);
+    end;
+  end
+  else
+  begin
+    Result := TryStrToDate(S, Value, FS);
+  end;
+end;
 
 { TSimpleJson }
 
@@ -285,6 +334,25 @@ procedure TSimpleJson.SetB(const Key: string; Value: Boolean);
 begin
   FObject.RemovePair(Key);
   FObject.AddPair(Key, Value);
+end;
+
+function TSimpleJson.GetD(const Key: string): TDateTime;
+var
+  Value: System.JSON.TJSONValue;
+  StrValue: string;
+begin
+  Result := 0;
+  if FObject.TryGetValue(Key, Value) then
+  begin
+    StrValue := Value.Value;
+    TryParseJSONDateTime(StrValue, Result);
+  end;
+end;
+
+procedure TSimpleJson.SetD(const Key: string; Value: TDateTime);
+begin
+  FObject.RemovePair(Key);
+  FObject.AddPair(Key, FormatDateTime(JSON_DATE_FORMAT, Value));
 end;
 
 function TSimpleJson.GetO(const Key: string): IJson;
@@ -523,6 +591,20 @@ begin
   end;
 end;
 
+function TSimpleJsonArray.GetD(Index: Integer): TDateTime;
+var
+  Value: System.JSON.TJSONValue;
+  StrValue: string;
+begin
+  Result := 0;
+  if (Index >= 0) and (Index < FArray.Count) then
+  begin
+    Value := FArray.Items[Index];
+    StrValue := Value.Value;
+    TryParseJSONDateTime(StrValue, Result);
+  end;
+end;
+
 function TSimpleJsonArray.Add(const Value: string): IJsonArray;
 begin
   FArray.Add(Value);
@@ -544,6 +626,12 @@ end;
 function TSimpleJsonArray.Add(Value: Boolean): IJsonArray;
 begin
   FArray.Add(Value);
+  Result := Self;
+end;
+
+function TSimpleJsonArray.Add(Value: TDateTime): IJsonArray;
+begin
+  FArray.Add(FormatDateTime(JSON_DATE_FORMAT, Value));
   Result := Self;
 end;
 
