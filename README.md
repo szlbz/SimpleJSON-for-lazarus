@@ -338,7 +338,7 @@ jsontest/
 
 ## 编译要求
 - lazarus
-- lazarus 支持 Win32/Win64/linux平台 aarch64/loongarch64/riscv64/x86_65等CPU
+- lazarus 支持 Win32/Win64/linux平台 aarch64/loongarch64/riscv64/x86_64等CPU
 
 
 ## 许可证
