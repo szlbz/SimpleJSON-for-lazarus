@@ -1,6 +1,6 @@
 # SimpleJSON
 
-一个简洁易用的 Delphi JSON 封装库，基于 `System.JSON` 单元封装，提供更直观的 API。
+一个简洁易用的 Lazarus(freepascal) JSON 封装库，基于 `fpJSON` 单元封装，提供更直观的 API。
 
 ## 特性
 
