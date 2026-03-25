@@ -384,15 +384,6 @@ begin
 end;
 ```
 
-## 文件结构
-
-```
-jsontest/
-├── SimpleJSON.pas        # 核心封装单元
-├── SimpleJSONDemo.dpr    # 演示程序
-└── README.md             # 本文档
-```
-
 ## 编译要求
 - lazarus
 - lazarus 支持 Win32/Win64/linux平台 aarch64/loongarch64/riscv64/x86_64等CPU
