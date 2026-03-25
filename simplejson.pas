@@ -11,6 +11,7 @@ const
   JSON_DATE_FORMAT = 'yyyy-mm-dd"T"hh:nn:ss.zzz';
 
 type
+  // 定义 fpjson 类型别名，方便代码迁移
   TJSONObject = fpjson.TJSONObject;
   TJSONValue = fpjson.TJSONData;
   TJSONNumber = fpjson.TJSONNumber;
@@ -19,6 +20,16 @@ type
   TJSONNull = fpjson.TJSONNull;
 
   TJsonValueType = (jvtNull, jvtString, jvtNumber, jvtBoolean, jvtObject, jvtArray);
+
+  // 新增：用于存储扁平化数据的结构
+  TJsonFlatItem = record
+    Path: string;         // 路径，如 "users[0].name"
+    ValueType: TJsonValueType;
+    Value: string;        // 统一转为字符串表示
+  end;
+
+  // 扁平化结果数组类型
+  TJsonFlatItems = array of TJsonFlatItem;
 
   IJson = interface;
   IJsonArray = interface;
@@ -96,6 +107,8 @@ type
     function Format: string;
     procedure SaveToFile(const FileName: string);
     function Clone: IJson;
+    function Flatten: TJsonFlatItems; // 新增方法
+
     property S[const Key: string]: string read GetS write SetS;
     property I[const Key: string]: Integer read GetI write SetI;
     property L[const Key: string]: Int64 read GetL write SetL;
@@ -156,6 +169,8 @@ type
     function Format: string;
     procedure SaveToFile(const FileName: string);
     function Clone: IJson;
+    function Flatten: TJsonFlatItems;
+
     property S[const Key: string]: string read GetS write SetS;
     property I[const Key: string]: Integer read GetI write SetI;
     property L[const Key: string]: Int64 read GetL write SetL;
@@ -222,14 +237,25 @@ implementation
 uses
   DateUtils, Character;
 
-// 自定义浮点数转字符串函数
+// 辅助：判断 fpjson 数据类型
+function GetJsonValueType(Data: TJSONData): TJsonValueType;
+begin
+  if Data is TJSONNull then Result := jvtNull
+  else if Data is TJSONString then Result := jvtString
+  else if Data is TJSONNumber then Result := jvtNumber
+  else if Data is TJSONBool then Result := jvtBoolean
+  else if Data is TJSONObject then Result := jvtObject
+  else if Data is fpjson.TJSONArray then Result := jvtArray
+  else Result := jvtNull;
+end;
+
+// 自定义浮点数转字符串
 function DoubleToJsonString(V: Double): string;
 var
   FS: TFormatSettings;
 begin
   FS := DefaultFormatSettings;
   FS.DecimalSeparator := '.';
-
   if (Abs(V) > 1E15) or (Abs(V) < 1E-15) then
     Result := FloatToStr(V, FS)
   else
@@ -242,7 +268,7 @@ begin
   end;
 end;
 
-// 核心修改：使用 is 关键字判断类型，避免枚举作用域问题
+// 核心序列化逻辑
 function JsonDataToString(Data: TJSONData; Indent: Integer; Formatted: Boolean): string;
 var
   i: Integer;
@@ -262,7 +288,6 @@ begin
     InnerIndentStr := '';
   end;
 
-  // 1. 处理对象
   if Data is TJSONObject then
   begin
     if Data.Count = 0 then
@@ -271,7 +296,6 @@ begin
     begin
       Result := '{';
       if Formatted then Result := Result + LineEnding;
-
       for i := 0 to Data.Count - 1 do
       begin
         if Formatted then Result := Result + InnerIndentStr;
@@ -281,12 +305,10 @@ begin
         if i < Data.Count - 1 then Result := Result + ',';
         if Formatted then Result := Result + LineEnding;
       end;
-
       if Formatted then Result := Result + IndentStr;
       Result := Result + '}';
     end;
   end
-  // 2. 处理数组
   else if Data is fpjson.TJSONArray then
   begin
     if Data.Count = 0 then
@@ -295,7 +317,6 @@ begin
     begin
       Result := '[';
       if Formatted then Result := Result + LineEnding;
-
       for i := 0 to Data.Count - 1 do
       begin
         if Formatted then Result := Result + InnerIndentStr;
@@ -303,22 +324,14 @@ begin
         if i < Data.Count - 1 then Result := Result + ',';
         if Formatted then Result := Result + LineEnding;
       end;
-
       if Formatted then Result := Result + IndentStr;
       Result := Result + ']';
     end;
   end
-  // 3. 处理浮点数 (特殊处理以避免科学记数法)
   else if Data is fpjson.TJSONFloatNumber then
-  begin
-    Result := DoubleToJsonString(Data.AsFloat);
-  end
-  // 4. 其他类型 (字符串、整数、布尔、Null) 直接使用 fpjson 的标准输出
-  // 注意：Data.AsJSON 会自动处理字符串转义、布尔值和 Null
+    Result := DoubleToJsonString(Data.AsFloat)
   else
-  begin
     Result := Data.AsJSON;
-  end;
 end;
 
 function TryParseJSONDateTime(const S: string; out Value: TDateTime): Boolean;
@@ -692,13 +705,7 @@ begin
   if not Assigned(FObject) then Exit;
   Val := FObject.Find(Key);
   if not Assigned(Val) then Exit;
-
-  if Val is TJSONNull then Result := jvtNull
-  else if Val is TJSONString then Result := jvtString
-  else if Val is TJSONNumber then Result := jvtNumber
-  else if Val is TJSONBoolean then Result := jvtBoolean
-  else if Val is TJSONObject then Result := jvtObject
-  else if Val is fpjson.TJSONArray then Result := jvtArray;
+  Result := GetJsonValueType(Val);
 end;
 
 function TJson.TryGetS(const Key: string; out Value: string): Boolean;
@@ -915,6 +922,65 @@ begin
     Result := TJson.Create;
 end;
 
+// --- Flatten 实现 ---
+function TJson.Flatten: TJsonFlatItems;
+var
+  List: TList<TJsonFlatItem>;
+
+  procedure Collect(Node: TJSONData; const CurrentPath: string);
+  var
+    i: Integer;
+    ChildPath: string;
+    Item: TJsonFlatItem;
+  begin
+    if not Assigned(Node) then Exit;
+
+    if Node is TJSONObject then
+    begin
+      for i := 0 to Node.Count - 1 do
+      begin
+        if CurrentPath = '' then
+          ChildPath := TJSONObject(Node).Names[i]
+        else
+          ChildPath := CurrentPath + '.' + TJSONObject(Node).Names[i];
+        Collect(Node.Items[i], ChildPath);
+      end;
+    end
+    else if Node is fpjson.TJSONArray then
+    begin
+      for i := 0 to Node.Count - 1 do
+      begin
+        ChildPath := CurrentPath + '[' + IntToStr(i) + ']';
+        Collect(Node.Items[i], ChildPath);
+      end;
+    end
+    else
+    begin
+      Item.Path := CurrentPath;
+      Item.ValueType := GetJsonValueType(Node);
+      if Node is fpjson.TJSONFloatNumber then
+        Item.Value := DoubleToJsonString(Node.AsFloat)
+      else
+        Item.Value := Node.AsString;
+      List.Add(Item);
+    end;
+  end;
+
+var
+  i: Integer;
+begin
+  List := TList<TJsonFlatItem>.Create;
+  try
+    if Assigned(FObject) then
+      Collect(FObject, '');
+    SetLength(Result, List.Count);
+    for i := 0 to List.Count - 1 do
+      Result[i] := List[i];
+  finally
+    List.Free;
+  end;
+end;
+
 { TJsonArray }
 
 constructor TJsonArray.Create;
@@ -1067,13 +1133,7 @@ begin
   Result := jvtNull;
   if not Assigned(FArray) or (Index < 0) or (Index >= FArray.Count) then Exit;
   Val := FArray.Items[Index];
-
-  if Val is TJSONNull then Result := jvtNull
-  else if Val is TJSONString then Result := jvtString
-  else if Val is TJSONNumber then Result := jvtNumber
-  else if Val is TJSONBoolean then Result := jvtBoolean
-  else if Val is TJSONObject then Result := jvtObject
-  else if Val is fpjson.TJSONArray then Result := jvtArray;
+  Result := GetJsonValueType(Val);
 end;
 
 function TJsonArray.Add(const Value: string): IJsonArray;
