@@ -13,7 +13,7 @@
 - **Null 值处理** - 支持 `IsNull`/`SetNull` 操作
 - **安全获取值** - `TryGet*` 系列方法避免键不存在时的异常
 - **文件读写** - `SaveToFile`/`LoadFromFile` 便捷操作
-- **零依赖** - 仅依赖 Delphi 标准库
+- **零依赖** - 仅依赖 freepascal的fpjson 标准库
 
 ## 快速开始
 
