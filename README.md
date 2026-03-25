@@ -316,6 +316,7 @@ end;
 | `ToJSON` | 输出紧凑 JSON 字符串 |
 | `Format` | 输出格式化 JSON 字符串 |
 | `SaveToFile(FileName)` | 保存到文件 |
+| `Flatten` | 将复杂的树形 JSON 数据“拍平”，变成一个简单的列表。你不需要再写递归函数去遍历节点，只需一个 for 循环就能处理所有数据 |
 
 ### IJsonArray 接口
 
