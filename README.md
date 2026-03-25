@@ -111,7 +111,7 @@ end;
 
 ### 安全获取值 (TryGet)
 
-```delphi
+```pascal
 var
   Json: IJson;
   Name: string;
