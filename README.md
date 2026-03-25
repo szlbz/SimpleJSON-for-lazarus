@@ -337,15 +337,9 @@ jsontest/
 ```
 
 ## 编译要求
+- lazarus
+- lazarus 支持 Win32/Win64/linux平台 aarch64/loongarch64/riscv64/x86_65等CPU
 
-- Delphi 10.4 Sydney 或更高版本
-- 支持 Win32/Win64 平台
-
-## 编译方法
-
-```bash
-dcc32 SimpleJSONDemo.dpr
-```
 
 ## 许可证
 
