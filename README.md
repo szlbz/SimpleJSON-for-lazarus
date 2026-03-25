@@ -14,6 +14,7 @@
 - **安全获取值** - `TryGet*` 系列方法避免键不存在时的异常
 - **文件读写** - `SaveToFile`/`LoadFromFile` 便捷操作
 - **零依赖** - 仅依赖 freepascal的fpjson 标准库
+- **Flatten 方法** - 这个方法的核心作用是将复杂的树形 JSON 数据“拍平”，变成一个简单的列表。你不需要再写递归函数去遍历节点，只需一个 for 循环就能处理所有数据。
 
 ## 快速开始
 
@@ -227,6 +228,61 @@ begin
   // 也可以使用 ParseFile (别名)
   Json := TJson.ParseFile('config.json');
 end;
+```
+
+### Flatten 使用方法
+```pascal
+procedure TForm1.Button2Click(Sender: TObject);
+var
+  Json: IJson;
+  Items: TJsonFlatItems;
+  I: Integer;
+begin
+  // 1. 构建复杂 JSON
+  Json := TJson.Create;
+  Json.S['name'] := '张三';
+  Json.I['age'] := 30;
+  
+  // 嵌套对象
+  Json.O['address'].S['city'] := '北京';
+  Json.O['address'].S['zip'] := '100000';
+  
+  // 嵌套数组
+  Json.A['scores'].Add(95).Add(88);
+  
+  // 2. 调用 Flatten 获取单层数组
+  Items := Json.Flatten;
+  
+  // 3. 单层循环遍历，无需关心层级结构
+  Memo1.Lines.Add('--- 遍历结果 ---');
+  for I := 0 to High(Items) do
+  begin
+    Memo1.Lines.Add(Format('路径: %s, 值: %s', 
+      [Items[I].Path, Items[I].Value]));
+  end;
+end;
+```
+## 输出结果：
+```
+{
+  "name": "张三",
+  "age": 30,
+  "address": {
+    "city": "北京",
+    "zip": "100000"
+  },
+  "scores": [
+    95,
+    88
+  ]
+}
+--- 遍历结果 ---
+路径: name, 值: 张三
+路径: age, 值: 30
+路径: address.city, 值: 北京
+路径: address.zip, 值: 100000
+路径: scores[0], 值: 95
+路径: scores[1], 值: 88
 ```
 
 ## API 参考
