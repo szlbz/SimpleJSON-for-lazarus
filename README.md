@@ -19,7 +19,7 @@
 
 ### 基本用法
 
-```delphi
+```pascal
 uses
   SimpleJSON;
 
@@ -48,7 +48,7 @@ end;
 
 ### 解析 JSON 字符串
 
-```delphi
+```pascal
 var
   Json: IJson;
 begin
@@ -60,7 +60,7 @@ end;
 
 ### 日期时间类型
 
-```delphi
+```pascal
 var
   Json: IJson;
 begin
@@ -89,7 +89,7 @@ end;
 
 ### Null 值处理
 
-```delphi
+```pascal
 var
   Json: IJson;
 begin
@@ -134,7 +134,7 @@ end;
 
 ### 嵌套对象
 
-```delphi
+```pascal
 var
   Json: IJson;
 begin
@@ -151,7 +151,7 @@ end;
 
 ### 数组操作
 
-```delphi
+```pascal
 var
   Json: IJson;
   i: Integer;
@@ -175,7 +175,7 @@ end;
 
 ### 对象数组
 
-```delphi
+```pascal
 var
   Json: IJson;
 begin
@@ -192,7 +192,7 @@ end;
 
 ### 路径访问
 
-```delphi
+```pascal
 var
   Json: IJson;
 begin
@@ -210,7 +210,7 @@ end;
 
 ### 文件读写
 
-```delphi
+```pascal
 var
   Json: IJson;
 begin
@@ -298,7 +298,7 @@ end;
 
 ### 原生写法
 
-```delphi
+```pascal
 var
   Obj: TJSONObject;
 begin
@@ -315,7 +315,7 @@ end;
 
 ### SimpleJSON 写法
 
-```delphi
+```pascal
 var
   Json: IJson;
 begin
